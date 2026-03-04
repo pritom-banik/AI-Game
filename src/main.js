@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 
 import { GomokuGame } from './game.js';
-import { findBestMove } from '../algorithms/minimax/Functions/findBestMove.js';
+import { findBestMove } from './algorithms/minimax/Functions/findBestMove.js';
 
 /* BASIC SETUP */
 const scene = new THREE.Scene();
