@@ -2,6 +2,7 @@ import * as THREE from 'three';
 
 import { GomokuGame } from './game.js';
 import { findBestMove } from './algorithms/minimax/Functions/findBestMove.js';
+import { monteCarloBestMove } from './algorithms/monte carlo/monteCarlo.js';
 
 /* BASIC SETUP */
 const scene = new THREE.Scene();
@@ -101,10 +102,14 @@ function renderStone(row, col, player) {
 
 async function runGame() {
     while (!game.gameOver) {
-        console.log(`Player ${game.currentPlayer} (Minimax) is thinking...`);
+        console.log(`Player ${game.currentPlayer} (${game.currentPlayer === 1 ? 'Minimax' : 'Monte Carlo'}) is thinking...`);
 
-        // Both players will use the same Minimax for now
-        const move = findBestMove(game.board);
+        let move;
+        if (game.currentPlayer === 1) {
+            move = findBestMove(game.board);
+        } else {
+            move = monteCarloBestMove(game.board);
+        }
 
         if (move) {
             const player = game.currentPlayer;

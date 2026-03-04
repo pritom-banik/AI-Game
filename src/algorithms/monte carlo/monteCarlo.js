@@ -1,4 +1,4 @@
-const SIMULATIONS = 300;
+const SIMULATIONS = 100;
 
 const oposition = 1;
 const AIc = 2;
@@ -69,7 +69,7 @@ function copyBoard(board) {
 }
 
 
-function monteCarloBestMove(board) {
+export function monteCarloBestMove(board) {
 
     let emptyCells = getEmptyCells(board);
     let bestMove = emptyCells[0];
