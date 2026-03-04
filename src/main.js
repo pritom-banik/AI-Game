@@ -2,7 +2,7 @@ import * as THREE from 'three';
 /* ------------------ BASIC SETUP ------------------ */
 const scene = new THREE.Scene();
 const loader = new THREE.TextureLoader();
-loader.load('/assets/300-movie-wallpaper.jpg', (texture) => {
+loader.load('./assets/300-movie-wallpaper.jpg', (texture) => {
   scene.background = texture;
 });
 
@@ -41,7 +41,7 @@ const boardGeo = new THREE.BoxGeometry(
 );
 
 const loader2 = new THREE.TextureLoader();
-loader2.load('/assets/board.jpg', function(texture) {
+loader2.load('./assets/board.jpg', function(texture) {
     const boardMat = new THREE.MeshStandardMaterial({
         map: texture,        
         roughness: 1,
