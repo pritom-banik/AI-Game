@@ -13,7 +13,7 @@ export const findBestMove = (board) => {
     const moves = getPossibleMoves(board);
 
     for (const move of moves) {
-        board[move.row][move.col] = 1;
+        board[move.row][move.col] = 2; // AI is Player 2
         const moveValue = minimax(board, depth - 1, false);
         board[move.row][move.col] = 0;
 

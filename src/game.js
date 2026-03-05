@@ -1,7 +1,5 @@
-// Gomoku Game Engine
-
 // Black --> 1
-// White --> 2 
+// White --> 2
 
 export class GomokuGame {
     constructor(size = 15) {
@@ -20,14 +18,14 @@ export class GomokuGame {
         if (this.checkWin(row, col)) {
             this.gameOver = true;
             this.winner = this.currentPlayer;
-        } 
+        }
         else if (this.isBoardFull()) {
             this.gameOver = true;
             this.winner = 0; // Draw
-        } 
+        }
         else
             this.currentPlayer = this.currentPlayer === 1 ? 2 : 1;
-        
+
         return true;
     }
 
@@ -39,7 +37,7 @@ export class GomokuGame {
             let count = 1;
             count += this.countConsecutive(row, col, dr, dc, player);
             count += this.countConsecutive(row, col, -dr, -dc, player);
-            if (count >= 5) 
+            if (count >= 5)
                 return true;
         }
         return false;
