@@ -2,14 +2,27 @@ import * as THREE from 'three';
 
 import { GomokuGame } from './game.js';
 import { findBestMove } from './algorithms/minimax/Functions/findBestMove.js';
-import { monteCarloBestMove } from './algorithms/monte carlo/monteCarlo.js';
+
+// Setup MCTS Worker
+const mctsWorker = new Worker(new URL('./algorithms/monte carlo/mcts.worker.js', import.meta.url), {
+    type: 'module'
+});
+
+function getMCTSMoveFromWorker(board) {
+    return new Promise((resolve) => {
+        mctsWorker.onmessage = (e) => {
+            resolve(e.data);
+        };
+        mctsWorker.postMessage({ board });
+    });
+}
 
 /* BASIC SETUP */
 const scene = new THREE.Scene();
 const loader = new THREE.TextureLoader();
 
 loader.load('/assets/300-movie-wallpaper.jpg', (texture) => {
-  scene.background = texture;
+    scene.background = texture;
 });
 
 const camera = new THREE.PerspectiveCamera(
@@ -47,7 +60,7 @@ const boardGeo = new THREE.BoxGeometry(
 
 const loader2 = new THREE.TextureLoader();
 
-loader2.load('/assets/board.jpg', function(texture) {
+loader2.load('/assets/board.jpg', function (texture) {
     const boardMat = new THREE.MeshStandardMaterial({
         map: texture,
         roughness: 1,
@@ -108,7 +121,7 @@ async function runGame() {
         if (game.currentPlayer === 1) {
             move = findBestMove(game.board);
         } else {
-            move = monteCarloBestMove(game.board);
+            move = await getMCTSMoveFromWorker(game.board);
         }
 
         if (move) {
