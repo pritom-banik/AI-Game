@@ -37,7 +37,7 @@ loader.load('/assets/300-movie-wallpaper.jpg', (texture) => {
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
     scene.background = texture;
-    scene.environment = texture; 
+    scene.environment = texture;
 });
 
 const camera = new THREE.PerspectiveCamera(
@@ -180,7 +180,7 @@ const updateStones = () => {
                 s.mesh.position.y = s.targetY;
                 s.velocity *= bounce;
                 s.bounced = true;
-            } 
+            }
             else {
                 s.mesh.position.y = s.targetY;
                 animatingStones.splice(i, 1);
@@ -192,7 +192,7 @@ const updateStones = () => {
 const updateStatus = (message, color) => {
     const statusMsg = document.getElementById('statusMessage');
     const badge = document.getElementById('playerBadge');
-    if (statusMsg) 
+    if (statusMsg)
         statusMsg.innerText = message;
     if (badge) {
         badge.style.color = color;
@@ -202,7 +202,7 @@ const updateStatus = (message, color) => {
 
 const runGame = async () => {
     const infoDiv = document.getElementById('info');
-    if (infoDiv) 
+    if (infoDiv)
         infoDiv.style.display = 'block';
 
     while (!game.gameOver) {
@@ -216,7 +216,7 @@ const runGame = async () => {
         if (isMinimax) {
             console.log("Requesting Minimax move from worker...");
             move = await getMinimaxMoveFromWorker(game.board);
-        } 
+        }
         else {
             console.log("Requesting MCTS move from worker...");
             move = await getMCTSMoveFromWorker(game.board);
@@ -263,13 +263,15 @@ camera.lookAt(0, 0, 0);
 /* ANIMATION LOOP */
 
 let isIntroActive = false;
+let isOrbitPaused = false;
+let orbitTimeOffset = 0;
 
 const cinematicFlyIn = async () => {
     isIntroActive = true;
-    const duration = 1500;
+    const duration = 1800; // Slightly slower for more impact
     const startTime = Date.now();
     const startPos = new THREE.Vector3(120, 80, 120);
-    const endPos = new THREE.Vector3(0, 40, 40);
+    const endPos = new THREE.Vector3(0, 40, 45); // Match orbit radius (45)
 
     return new Promise((resolve) => {
         function frame() {
@@ -284,6 +286,15 @@ const cinematicFlyIn = async () => {
                 requestAnimationFrame(frame);
             else {
                 isIntroActive = false;
+                isOrbitPaused = true;
+
+                // Keep camera locked for 2.5 seconds to capture first few moves
+                setTimeout(() => {
+                    isOrbitPaused = false;
+                    // Dynamically calculate offset the moment orbit starts
+                    orbitTimeOffset = (Date.now() * 0.0001) - (Math.PI / 2);
+                }, 2500);
+
                 resolve();
             }
         }
@@ -295,11 +306,20 @@ const animate = () => {
     requestAnimationFrame(animate);
 
     if (!isIntroActive) {
-        // Smooth Orbit
-        const timer = Date.now() * 0.0001;
-        camera.position.x = Math.cos(timer) * 45;
-        camera.position.z = Math.sin(timer) * 45;
-        camera.lookAt(0, 0, 0);
+        if (isOrbitPaused) {
+            // Lock to exact end position
+            camera.position.set(0, 40, 45);
+            camera.lookAt(0, 0, 0);
+        } else {
+            // Smooth Orbit using synchronized offset
+            // Ensure offset is initialized if we skipped the intro (failsafe)
+            if (orbitTimeOffset === 0) orbitTimeOffset = (Date.now() * 0.0001) - (Math.PI / 2);
+
+            const timer = (Date.now() * 0.0001) - orbitTimeOffset;
+            camera.position.x = Math.cos(timer) * 45;
+            camera.position.z = Math.sin(timer) * 45;
+            camera.lookAt(0, 0, 0);
+        }
     }
 
     updateStones();
