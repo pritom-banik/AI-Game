@@ -155,6 +155,7 @@ const smartRollout = (board, currentPlayer) => {
                 return player; // Win
         }
 
+        let bestMove = null;
         // 2. Check if current player can create an Open Four (guaranteed win)
         for (const m of moves) {
             if (isOpenFour(tempBoard, m.row, m.col, player)) {
