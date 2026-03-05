@@ -29,7 +29,7 @@ const getMinimaxMoveFromWorker = (board) => {
     });
 }
 
-/* BASIC SETUP */
+// Setup
 const scene = new THREE.Scene();
 const loader = new THREE.TextureLoader();
 
@@ -57,7 +57,7 @@ renderer.toneMapping = THREE.ReinhardToneMapping;
 renderer.toneMappingExposure = 1.4;
 document.body.appendChild(renderer.domElement);
 
-/* CINEMATIC LIGHTING */
+// Lighting
 
 const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
 scene.add(ambientLight);
@@ -81,7 +81,7 @@ const rimLight = new THREE.PointLight(0xDAB98E, 2.0, 100);
 rimLight.position.set(-20, 10, -20);
 scene.add(rimLight);
 
-/* BOARD PLATFORM */
+// Board
 
 const BOARD_SIZE = 15;
 const BOARD_WORLD_SIZE = 30;
@@ -107,7 +107,7 @@ loader.load('/assets/board.jpg', (texture) => {
     scene.add(board);
 });
 
-/* GRID LINES */
+// Grid
 
 const gridHelper = new THREE.GridHelper(
     BOARD_WORLD_SIZE,
@@ -119,18 +119,17 @@ const gridHelper = new THREE.GridHelper(
 gridHelper.position.y = 1.51;
 scene.add(gridHelper);
 
-/* GAME ENGINE & AI */
-
-/* GAME STATE */
-let gameMode = 'AI_VS_AI'; // 'AI_VS_AI' or 'HUMAN_VS_AI'
-let opponentAI = 'MINIMAX'; // 'MINIMAX' or 'MCTS'
+// State
+let gameMode = 'AI_VS_AI';
+let opponentAI = 'MINIMAX';
 let isHumanTurn = false;
 let humanMovePromiseResolve = null;
+let gamePaused = false;
 
 const game = new GomokuGame(BOARD_SIZE);
 const animatingStones = [];
 
-/* INTERACTIVITY SETUP */
+// Interactivity
 const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2();
 
@@ -237,7 +236,6 @@ const showVictoryDialogue = (winner) => {
 }
 
 const resetGame = () => {
-    // Clear stones from scene
     const stonesToRemove = [];
     scene.traverse((object) => {
         if (object instanceof THREE.Mesh && object.geometry.type === 'SphereGeometry') {
@@ -246,20 +244,17 @@ const resetGame = () => {
     });
     stonesToRemove.forEach(s => scene.remove(s));
 
-    // Reset game state
     game.board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0));
     game.currentPlayer = 1;
     game.gameOver = false;
     game.winner = null;
     animatingStones.length = 0;
 
-    // Hide UI
     document.getElementById('victoryOverlay').style.display = 'none';
     document.getElementById('info').style.display = 'none';
     document.getElementById('overlay').style.display = 'flex';
     document.getElementById('overlay').style.opacity = '1';
 
-    // Show main menu
     document.getElementById('menuMain').style.display = 'block';
     document.getElementById('menuChooseAI').style.display = 'none';
 }
@@ -273,7 +268,7 @@ const getHumanMove = () => {
 }
 
 const handleBoardClick = (event) => {
-    if (!isHumanTurn || game.gameOver) return;
+    if (!isHumanTurn || game.gameOver || gamePaused) return;
 
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -282,7 +277,6 @@ const handleBoardClick = (event) => {
     const intersects = raycaster.intersectObjects(scene.children);
 
     for (const intersect of intersects) {
-        // Check if we hit the board platform
         if (intersect.object.geometry.type === 'BoxGeometry') {
             const gridPos = worldToGrid(intersect.point.x, intersect.point.z);
             if (gridPos.row >= 0 && gridPos.row < BOARD_SIZE && gridPos.col >= 0 && gridPos.col < BOARD_SIZE) {
@@ -298,7 +292,7 @@ const handleBoardClick = (event) => {
 }
 
 const handleBoardHover = (event) => {
-    if (!isHumanTurn || game.gameOver) return;
+    if (!isHumanTurn || game.gameOver || gamePaused) return;
 
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -329,12 +323,34 @@ const handleBoardHover = (event) => {
 window.addEventListener('mousedown', (e) => handleBoardClick(e));
 window.addEventListener('mousemove', (e) => handleBoardHover(e));
 
+const showPauseMenu = () => {
+    const pm = document.getElementById('pauseMenu');
+    if (pm) pm.classList.remove('hidden');
+};
+const hidePauseMenu = () => {
+    const pm = document.getElementById('pauseMenu');
+    if (pm) pm.classList.add('hidden');
+};
+
 const runGame = async () => {
     const infoDiv = document.getElementById('info');
     if (infoDiv)
         infoDiv.style.display = 'block';
 
     while (!game.gameOver) {
+        if (gamePaused) {
+            await new Promise(resolve => {
+                const resume = document.getElementById('resumeBtn');
+                const unpause = () => {
+                    gamePaused = false;
+                    hidePauseMenu();
+                    resume.removeEventListener('click', unpause);
+                    resolve();
+                };
+                resume.addEventListener('click', unpause);
+            });
+        }
+
         let move;
         const player = game.currentPlayer;
 
@@ -347,7 +363,6 @@ const runGame = async () => {
                 move = opponentAI === 'MINIMAX' ? await getMinimaxMoveFromWorker(game.board) : await getMCTSMoveFromWorker(game.board);
             }
         } else {
-            // AI vs AI
             const isMinimax = player === 1;
             updateStatus(
                 isMinimax ? "Minimax thinking..." : "Monte Carlo thinking...",
@@ -360,7 +375,6 @@ const runGame = async () => {
             if (game.makeMove(move.row, move.col)) {
                 renderStone(move.row, move.col, player);
 
-                // Universal delay for better game rhythm
                 await new Promise(resolve => setTimeout(resolve, 1000));
 
                 if (game.gameOver) {
@@ -380,7 +394,7 @@ const runGame = async () => {
     }
 }
 
-/* MENU LOGIC */
+// Menu
 
 const startSession = async () => {
     const overlay = document.getElementById('overlay');
@@ -421,6 +435,29 @@ document.getElementById('playMctsBtn').addEventListener('click', () => {
 
 document.getElementById('backToMenuBtn').addEventListener('click', () => resetGame());
 
+const menuBar = document.getElementById('menuBar');
+if (menuBar) {
+    menuBar.addEventListener('click', () => {
+        gamePaused = true;
+        showPauseMenu();
+    });
+}
+
+const resumeBtn = document.getElementById('resumeBtn');
+if (resumeBtn) {
+    resumeBtn.addEventListener('click', () => {
+        gamePaused = false;
+        hidePauseMenu();
+    });
+}
+
+const mainMenuBtn = document.getElementById('mainMenuBtn');
+if (mainMenuBtn) {
+    mainMenuBtn.addEventListener('click', () => {
+        window.location.reload();
+    });
+}
+
 /* INTERACTIVE CAMERA */
 
 camera.position.set(0, 40, 40);
@@ -434,16 +471,16 @@ let orbitTimeOffset = 0;
 
 const cinematicFlyIn = async () => {
     isIntroActive = true;
-    const duration = 1800; // Slightly slower for more impact
+    const duration = 1800;
     const startTime = Date.now();
     const startPos = new THREE.Vector3(120, 80, 120);
-    const endPos = new THREE.Vector3(0, 40, 45); // Match orbit radius (45)
+    const endPos = new THREE.Vector3(0, 40, 45);
 
     return new Promise((resolve) => {
         const frame = () => {
             const now = Date.now();
             const t = Math.min((now - startTime) / duration, 1);
-            const ease = 1 - Math.pow(1 - t, 3); // easeOutCubic
+            const ease = 1 - Math.pow(1 - t, 3);
 
             camera.position.lerpVectors(startPos, endPos, ease);
             camera.lookAt(0, 0, 0);
@@ -469,21 +506,23 @@ const cinematicFlyIn = async () => {
 const animate = () => {
     requestAnimationFrame(animate);
 
-    if (!isIntroActive) {
-        if (isOrbitPaused) {
-            camera.position.set(0, 40, 45);
-            camera.lookAt(0, 0, 0);
-        } else {
-            if (orbitTimeOffset === 0) orbitTimeOffset = (Date.now() * 0.0001) - (Math.PI / 2);
+    if (!gamePaused) {
+        if (!isIntroActive) {
+            if (isOrbitPaused) {
+                camera.position.set(0, 40, 45);
+                camera.lookAt(0, 0, 0);
+            } else {
+                if (orbitTimeOffset === 0) orbitTimeOffset = (Date.now() * 0.0001) - (Math.PI / 2);
 
-            const timer = (Date.now() * 0.0001) - orbitTimeOffset;
-            camera.position.x = Math.cos(timer) * 45;
-            camera.position.z = Math.sin(timer) * 45;
-            camera.lookAt(0, 0, 0);
+                const timer = (Date.now() * 0.0001) - orbitTimeOffset;
+                camera.position.x = Math.cos(timer) * 45;
+                camera.position.z = Math.sin(timer) * 45;
+                camera.lookAt(0, 0, 0);
+            }
         }
-    }
 
-    updateStones();
+        updateStones();
+    }
     renderer.render(scene, camera);
 }
 
@@ -494,4 +533,3 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
-

@@ -388,3 +388,51 @@ canvas.clickable {
         opacity: 0.6;
     }
 }
+
+
+
+#menuBar {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 60;
+    background: rgba(76, 10, 10, 0.904);
+    color: #fff;
+    padding: 0.5rem 0.8rem;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    user-select: none;
+}
+
+#pauseMenu {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 61;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 1rem;
+    border-radius: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+#pauseMenu button {
+    background: #DAB98E;
+    padding: 1.4rem 5rem;
+    border-radius: 2px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    font-family: 'Cinzel', serif;
+    border: none;
+    cursor: pointer;
+    transition: all 0.4s ease;
+    box-shadow: 0 0 40px rgba(218, 185, 142, 0.2);
+    letter-spacing: 3px;
+}
+
+.hidden { display: none !important; }

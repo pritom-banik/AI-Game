@@ -232,16 +232,13 @@ const hasNeighbor = (board, r, c) => {
     return false;
 }
 
-// Fast Win Check (Only around the last move)
-
-function isWinningMove(board, row, col) {
+const isWinningMove = (board, row, col) => {
     const player = board[row][col];
     const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
     const size = board.length;
 
     for (const [dr, dc] of directions) {
         let count = 1;
-        // Check positive
         for (let i = 1; i < 5; i++) {
             const r = row + dr * i, c = col + dc * i;
             if (r >= 0 && r < size && c >= 0 && c < size && board[r][c] === player)
@@ -249,7 +246,6 @@ function isWinningMove(board, row, col) {
             else
                 break;
         }
-        // Check negative
         for (let i = 1; i < 5; i++) {
             const r = row - dr * i, c = col - dc * i;
             if (r >= 0 && r < size && c >= 0 && c < size && board[r][c] === player)
