@@ -44,7 +44,7 @@ class MCTSNode {
 
 // Main MCTS Function
 
-const monteCarloBestMove = (board) => {
+export const monteCarloBestMove = (board) => {
     const aiPlayer = 2; // Assuming AI is White/2
     const opponent = 1;
 
@@ -123,7 +123,7 @@ const monteCarloBestMove = (board) => {
 
 
 // Tactical Rollout: Prioritize immediate wins and blocks
- 
+
 const smartRollout = (board, currentPlayer) => {
     const tempBoard = copyBoard(board);
     const size = tempBoard.length;
@@ -166,7 +166,7 @@ const smartRollout = (board, currentPlayer) => {
 }
 
 // Fast Neighborhood Move Selection
- 
+
 const getNeighborhoodMoves = (board) => {
     const size = board.length;
     const moves = [];
@@ -180,7 +180,7 @@ const getNeighborhoodMoves = (board) => {
         }
     }
     // If empty board, try center
-    if (moves.length === 0) 
+    if (moves.length === 0)
         return [{ row: Math.floor(size / 2), col: Math.floor(size / 2) }];
     return moves;
 }
@@ -189,7 +189,7 @@ const hasNeighbor = (board, r, c) => {
     const size = board.length;
     for (let i = r - 1; i <= r + 1; i++) {
         for (let j = c - 1; j <= c + 1; j++) {
-            if (i >= 0 && i < size && j >= 0 && j < size && board[i][j] !== 0) 
+            if (i >= 0 && i < size && j >= 0 && j < size && board[i][j] !== 0)
                 return true;
         }
     }
@@ -197,7 +197,7 @@ const hasNeighbor = (board, r, c) => {
 }
 
 // Fast Win Check (Only around the last move)
- 
+
 function isWinningMove(board, row, col) {
     const player = board[row][col];
     const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
@@ -208,27 +208,27 @@ function isWinningMove(board, row, col) {
         // Check positive
         for (let i = 1; i < 5; i++) {
             const r = row + dr * i, c = col + dc * i;
-            if (r >= 0 && r < size && c >= 0 && c < size && board[r][c] === player) 
+            if (r >= 0 && r < size && c >= 0 && c < size && board[r][c] === player)
                 count++;
-            else 
+            else
                 break;
         }
         // Check negative
         for (let i = 1; i < 5; i++) {
             const r = row - dr * i, c = col - dc * i;
-            if (r >= 0 && r < size && c >= 0 && c < size && board[r][c] === player) 
+            if (r >= 0 && r < size && c >= 0 && c < size && board[r][c] === player)
                 count++;
-            else 
+            else
                 break;
         }
-        if (count >= 5) 
+        if (count >= 5)
             return true;
     }
     return false;
 }
 
 // Check if placing a stone creates a line of 'target' length
- 
+
 const checkImpact = (board, row, col, player, target) => {
     board[row][col] = player;
     const win = isWinningMove(board, row, col);
