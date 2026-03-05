@@ -1,0 +1,267 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Cinzel:wght@700&display=swap');
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Outfit', sans-serif;
+}
+
+body {
+    overflow: hidden;
+    background-color: #050505;
+}
+
+#overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: radial-gradient(circle, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0.9) 100%);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+    transition: opacity 1s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow: hidden;
+}
+
+/* Background Zoom Effect for Cutscene */
+#overlay::before {
+    content: '';
+    position: absolute;
+    top: -10%;
+    left: -10%;
+    width: 120%;
+    height: 120%;
+    background: url('/assets/300-movie-wallpaper.jpg') center/cover no-repeat;
+    z-index: -1;
+    animation: cinematicZoom 15s linear infinite alternate;
+    opacity: 0.6;
+}
+
+.intro-container {
+    text-align: center;
+    max-width: 1100px;
+    width: 95%;
+    padding: 2rem;
+    position: relative;
+}
+
+.vs-container {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin-bottom: 4rem;
+    gap: 3rem;
+}
+
+.side {
+    flex: 1;
+    padding: 2.5rem;
+    background: rgba(0, 0, 0, 0.85);
+    /* Dark background for high contrast */
+    backdrop-filter: blur(24px);
+    /* Strong blur to separate from background */
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    /* Clean uniform border */
+    border-radius: 12px;
+    transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+    animation: slideUp 1.2s ease-out forwards;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6);
+}
+
+.side:hover {
+    background: rgba(10, 10, 10, 0.95);
+    transform: translateY(-10px) scale(1.02);
+    border-color: rgba(218, 185, 142, 0.5);
+}
+
+.agent-title {
+    font-size: 0.75rem;
+    letter-spacing: 5px;
+    color: #DAB98E;
+    margin-bottom: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    animation: flicker 4s infinite;
+}
+
+.agent-name {
+    font-family: 'Cinzel', serif;
+    font-size: 3rem;
+    color: white;
+    margin-bottom: 0.8rem;
+    text-shadow: 0 0 30px rgba(255, 255, 255, 0.4);
+}
+
+.agent-disc {
+    font-size: 0.85rem;
+    color: rgba(255, 255, 255, 0.6);
+    letter-spacing: 1px;
+}
+
+.vs-emblem {
+    font-family: 'Cinzel', serif;
+    font-size: 5rem;
+    color: #DAB98E;
+    font-weight: 700;
+    filter: drop-shadow(0 0 15px rgba(218, 185, 142, 0.5));
+    animation: pulse 2.5s infinite;
+    position: relative;
+}
+
+.vs-emblem::after {
+    content: '';
+    position: absolute;
+    width: 250%;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, #DAB98E, transparent);
+    bottom: -5px;
+    left: -75%;
+}
+
+.btn-start {
+    background: #DAB98E;
+    color: #000;
+    padding: 1.4rem 5rem;
+    border-radius: 2px;
+    font-size: 1.3rem;
+    font-weight: 700;
+    font-family: 'Cinzel', serif;
+    border: none;
+    cursor: pointer;
+    transition: all 0.4s ease;
+    box-shadow: 0 0 40px rgba(218, 185, 142, 0.2);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+}
+
+.btn-start:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 60px rgba(218, 185, 142, 0.5);
+    background: #fff;
+    color: #000;
+}
+
+#info {
+    position: absolute;
+    top: 2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 0.8rem 2rem;
+    border-radius: 4px;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    z-index: 50;
+    display: none;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.badge {
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    margin-right: 15px;
+}
+
+/* RESPONSIVENESS */
+@media (max-width: 900px) {
+    .vs-container {
+        flex-direction: column;
+        gap: 1.5rem;
+        margin-bottom: 2.5rem;
+    }
+
+    .vs-emblem {
+        font-size: 3rem;
+        margin: 1rem 0;
+    }
+
+    .vs-emblem::after {
+        width: 100%;
+        left: 0;
+    }
+
+    .agent-name {
+        font-size: 2.2rem;
+    }
+
+    .side {
+        width: 100%;
+        padding: 1.5rem;
+    }
+
+    .btn-start {
+        width: 100%;
+        padding: 1.2rem;
+    }
+}
+
+/* ANIMATIONS */
+@keyframes cinematicZoom {
+    from {
+        transform: scale(1);
+    }
+
+    to {
+        transform: scale(1.15);
+    }
+}
+
+@keyframes flicker {
+
+    0%,
+    18%,
+    22%,
+    25%,
+    53%,
+    57%,
+    100% {
+        opacity: 1;
+    }
+
+    20%,
+    24%,
+    55% {
+        opacity: 0.3;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(60px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 0.6;
+    }
+
+    50% {
+        transform: scale(1.1);
+        opacity: 1;
+    }
+
+    100% {
+        transform: scale(1);
+        opacity: 0.6;
+    }
+}
