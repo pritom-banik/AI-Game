@@ -41,7 +41,7 @@ loader.load('/assets/300-movie-wallpaper.jpg', (texture) => {
 });
 
 const camera = new THREE.PerspectiveCamera(
-    35, // Slightly narrower for cinematic feel
+    35,
     window.innerWidth / window.innerHeight,
     0.1,
     1000
@@ -52,35 +52,32 @@ renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap; // Softer shadows
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 renderer.toneMapping = THREE.ReinhardToneMapping;
-renderer.toneMappingExposure = 1.4; // Slightly increased exposure
+renderer.toneMappingExposure = 1.4;
 document.body.appendChild(renderer.domElement);
 
 /* CINEMATIC LIGHTING */
 
-const ambientLight = new THREE.AmbientLight(0xffffff, 0.8); // Further increased for clarity
+const ambientLight = new THREE.AmbientLight(0xffffff, 0.8);
 scene.add(ambientLight);
 
-// Main moody spotlight
-const spotLight = new THREE.SpotLight(0xffffff, 5.0); // Boosted further
+const spotLight = new THREE.SpotLight(0xffffff, 5.0);
 spotLight.position.set(20, 45, 20);
 spotLight.angle = Math.PI / 6;
 spotLight.penumbra = 0.5;
-spotLight.decay = 1.5; // Softer decay
+spotLight.decay = 1.5;
 spotLight.distance = 250;
 spotLight.castShadow = true;
 spotLight.shadow.mapSize.width = 1024;
 spotLight.shadow.mapSize.height = 1024;
 scene.add(spotLight);
 
-// Fill light from opposite side to soften shadows
 const fillLight = new THREE.DirectionalLight(0xffffff, 0.5);
 fillLight.position.set(-20, 20, -20);
 scene.add(fillLight);
 
-// Rim light for depth
-const rimLight = new THREE.PointLight(0xDAB98E, 2.0, 100); // Increased intensity
+const rimLight = new THREE.PointLight(0xDAB98E, 2.0, 100);
 rimLight.position.set(-20, 10, -20);
 scene.add(rimLight);
 
@@ -95,7 +92,7 @@ const boardGeo = new THREE.BoxGeometry(
     BOARD_WORLD_SIZE + 2.5
 );
 
-loader.load('/assets/board.jpg', function (texture) {
+loader.load('/assets/board.jpg', (texture) => {
     texture.colorSpace = THREE.SRGBColorSpace;
     texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
     const boardMat = new THREE.MeshStandardMaterial({
@@ -105,7 +102,7 @@ loader.load('/assets/board.jpg', function (texture) {
     });
 
     const board = new THREE.Mesh(boardGeo, boardMat);
-    board.position.y = 0.75; // Lowered to align with grid
+    board.position.y = 0.75;
     board.receiveShadow = true;
     scene.add(board);
 });
@@ -124,8 +121,18 @@ scene.add(gridHelper);
 
 /* GAME ENGINE & AI */
 
+/* GAME STATE */
+let gameMode = 'AI_VS_AI'; // 'AI_VS_AI' or 'HUMAN_VS_AI'
+let opponentAI = 'MINIMAX'; // 'MINIMAX' or 'MCTS'
+let isHumanTurn = false;
+let humanMovePromiseResolve = null;
+
 const game = new GomokuGame(BOARD_SIZE);
 const animatingStones = [];
+
+/* INTERACTIVITY SETUP */
+const raycaster = new THREE.Raycaster();
+const mouse = new THREE.Vector2();
 
 const gridToWorld = (row, col) => {
     const offset = (BOARD_SIZE - 1) / 2;
@@ -135,10 +142,16 @@ const gridToWorld = (row, col) => {
     };
 }
 
+const worldToGrid = (x, z) => {
+    const offset = (BOARD_SIZE - 1) / 2;
+    const col = Math.round(x / (BOARD_WORLD_SIZE / BOARD_SIZE) + offset);
+    const row = Math.round(z / (BOARD_WORLD_SIZE / BOARD_SIZE) + offset);
+    return { row, col };
+}
+
 const renderStone = (row, col, player) => {
     const pos = gridToWorld(row, col);
 
-    // Premium physical material for polished stones
     const geo = new THREE.SphereGeometry(0.8, 32, 24);
     const mat = new THREE.MeshPhysicalMaterial({
         color: player === 1 ? 0x0a0a0a : 0xfcfcfc,
@@ -151,13 +164,11 @@ const renderStone = (row, col, player) => {
 
     const stone = new THREE.Mesh(geo, mat);
 
-    // Start height for the drop animation
     stone.position.set(pos.x, 15, pos.z);
     stone.castShadow = true;
     stone.receiveShadow = true;
     scene.add(stone);
 
-    // Animation state
     animatingStones.push({
         mesh: stone,
         targetY: 2.1,
@@ -200,60 +211,215 @@ const updateStatus = (message, color) => {
     }
 }
 
+const showVictoryDialogue = (winner) => {
+    const victoryOverlay = document.getElementById('victoryOverlay');
+    const victoryMessage = document.getElementById('victoryMessage');
+    const victoryTitle = document.querySelector('.victory-title');
+
+    if (victoryOverlay && victoryMessage) {
+        if (winner === 0) {
+            victoryTitle.innerText = "DRAW";
+            victoryMessage.innerText = "It's a tie!";
+        } else if (gameMode === 'HUMAN_VS_AI') {
+            if (winner === 1) {
+                victoryTitle.innerText = "VICTORY";
+                victoryMessage.innerText = "You won!";
+            } else {
+                victoryTitle.innerText = "YOU LOST";
+                victoryMessage.innerText = "AI won";
+            }
+        } else {
+            victoryTitle.innerText = "BATTLE ENDED";
+            victoryMessage.innerText = winner === 1 ? "Minimax won" : "MCTS won";
+        }
+        victoryOverlay.style.display = 'flex';
+    }
+}
+
+const resetGame = () => {
+    // Clear stones from scene
+    const stonesToRemove = [];
+    scene.traverse((object) => {
+        if (object instanceof THREE.Mesh && object.geometry.type === 'SphereGeometry') {
+            stonesToRemove.push(object);
+        }
+    });
+    stonesToRemove.forEach(s => scene.remove(s));
+
+    // Reset game state
+    game.board = Array(BOARD_SIZE).fill().map(() => Array(BOARD_SIZE).fill(0));
+    game.currentPlayer = 1;
+    game.gameOver = false;
+    game.winner = null;
+    animatingStones.length = 0;
+
+    // Hide UI
+    document.getElementById('victoryOverlay').style.display = 'none';
+    document.getElementById('info').style.display = 'none';
+    document.getElementById('overlay').style.display = 'flex';
+    document.getElementById('overlay').style.opacity = '1';
+
+    // Show main menu
+    document.getElementById('menuMain').style.display = 'block';
+    document.getElementById('menuChooseAI').style.display = 'none';
+}
+
+const getHumanMove = () => {
+    return new Promise((resolve) => {
+        isHumanTurn = true;
+        renderer.domElement.classList.add('clickable');
+        humanMovePromiseResolve = resolve;
+    });
+}
+
+const handleBoardClick = (event) => {
+    if (!isHumanTurn || game.gameOver) return;
+
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(scene.children);
+
+    for (const intersect of intersects) {
+        // Check if we hit the board platform
+        if (intersect.object.geometry.type === 'BoxGeometry') {
+            const gridPos = worldToGrid(intersect.point.x, intersect.point.z);
+            if (gridPos.row >= 0 && gridPos.row < BOARD_SIZE && gridPos.col >= 0 && gridPos.col < BOARD_SIZE) {
+                if (game.board[gridPos.row][gridPos.col] === 0) {
+                    isHumanTurn = false;
+                    renderer.domElement.classList.remove('clickable');
+                    humanMovePromiseResolve(gridPos);
+                    break;
+                }
+            }
+        }
+    }
+}
+
+const handleBoardHover = (event) => {
+    if (!isHumanTurn || game.gameOver) return;
+
+    mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(mouse, camera);
+    const intersects = raycaster.intersectObjects(scene.children);
+
+    let isOverBoard = false;
+    for (const intersect of intersects) {
+        if (intersect.object.geometry.type === 'BoxGeometry') {
+            const gridPos = worldToGrid(intersect.point.x, intersect.point.z);
+            if (gridPos.row >= 0 && gridPos.row < BOARD_SIZE && gridPos.col >= 0 && gridPos.col < BOARD_SIZE) {
+                if (game.board[gridPos.row][gridPos.col] === 0) {
+                    isOverBoard = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    if (isOverBoard) {
+        renderer.domElement.classList.add('clickable');
+    } else {
+        renderer.domElement.classList.remove('clickable');
+    }
+}
+
+window.addEventListener('mousedown', (e) => handleBoardClick(e));
+window.addEventListener('mousemove', (e) => handleBoardHover(e));
+
 const runGame = async () => {
     const infoDiv = document.getElementById('info');
     if (infoDiv)
         infoDiv.style.display = 'block';
 
     while (!game.gameOver) {
-        const isMinimax = game.currentPlayer === 1;
-        updateStatus(
-            isMinimax ? "Minimax thinking..." : "Monte Carlo thinking...",
-            isMinimax ? "#ffffff" : "#DAB98E"
-        );
-
         let move;
-        if (isMinimax) {
-            console.log("Requesting Minimax move from worker...");
-            move = await getMinimaxMoveFromWorker(game.board);
-        }
-        else {
-            console.log("Requesting MCTS move from worker...");
-            move = await getMCTSMoveFromWorker(game.board);
+        const player = game.currentPlayer;
+
+        if (gameMode === 'HUMAN_VS_AI') {
+            if (player === 1) {
+                updateStatus("Your Turn (Black)", "#ffffff");
+                move = await getHumanMove();
+            } else {
+                updateStatus("AI thinking...", "#DAB98E");
+                move = opponentAI === 'MINIMAX' ? await getMinimaxMoveFromWorker(game.board) : await getMCTSMoveFromWorker(game.board);
+            }
+        } else {
+            // AI vs AI
+            const isMinimax = player === 1;
+            updateStatus(
+                isMinimax ? "Minimax thinking..." : "Monte Carlo thinking...",
+                isMinimax ? "#ffffff" : "#DAB98E"
+            );
+            move = isMinimax ? await getMinimaxMoveFromWorker(game.board) : await getMCTSMoveFromWorker(game.board);
         }
 
         if (move) {
-            const player = game.currentPlayer;
             if (game.makeMove(move.row, move.col)) {
                 renderStone(move.row, move.col, player);
 
+                // Universal delay for better game rhythm
+                await new Promise(resolve => setTimeout(resolve, 1000));
+
                 if (game.gameOver) {
-                    const statusText = game.winner === 0 ? "Draw!" : `Player ${game.winner === 1 ? 'Black' : 'White'} Wins!`;
+                    let statusText = "";
+                    if (game.winner === 0) statusText = "DRAW";
+                    else if (gameMode === 'HUMAN_VS_AI') {
+                        statusText = game.winner === 1 ? "VICTORY" : "YOU LOST";
+                    } else {
+                        statusText = game.winner === 1 ? "MINIMAX WON" : "MCTS WON";
+                    }
                     updateStatus(statusText, "red");
+                    setTimeout(() => showVictoryDialogue(game.winner), 2000);
                     break;
                 }
             }
         }
-        // 1 sec delay between moves
-        await new Promise(resolve => setTimeout(resolve, 1000));
     }
 }
 
 /* MENU LOGIC */
 
-const startBtn = document.getElementById('startBtn');
-if (startBtn) {
-    startBtn.addEventListener('click', async () => {
-        const overlay = document.getElementById('overlay');
-        if (overlay) {
-            overlay.style.opacity = '0';
-            // cinematic camera move
-            await cinematicFlyIn();
-            overlay.style.display = 'none';
-            runGame();
-        }
-    });
+const startSession = async () => {
+    const overlay = document.getElementById('overlay');
+    if (overlay) {
+        overlay.style.opacity = '0';
+        await cinematicFlyIn();
+        overlay.style.display = 'none';
+        runGame();
+    }
 }
+
+document.getElementById('playBtn').addEventListener('click', () => {
+    document.getElementById('menuMain').style.display = 'none';
+    document.getElementById('menuChooseAI').style.display = 'block';
+});
+
+document.getElementById('backToMainBtn').addEventListener('click', () => {
+    document.getElementById('menuChooseAI').style.display = 'none';
+    document.getElementById('menuMain').style.display = 'block';
+});
+
+document.getElementById('aiVsAiBtn').addEventListener('click', () => {
+    gameMode = 'AI_VS_AI';
+    startSession();
+});
+
+document.getElementById('playMinimaxBtn').addEventListener('click', () => {
+    gameMode = 'HUMAN_VS_AI';
+    opponentAI = 'MINIMAX';
+    startSession();
+});
+
+document.getElementById('playMctsBtn').addEventListener('click', () => {
+    gameMode = 'HUMAN_VS_AI';
+    opponentAI = 'MCTS';
+    startSession();
+});
+
+document.getElementById('backToMenuBtn').addEventListener('click', () => resetGame());
 
 /* INTERACTIVE CAMERA */
 
@@ -274,7 +440,7 @@ const cinematicFlyIn = async () => {
     const endPos = new THREE.Vector3(0, 40, 45); // Match orbit radius (45)
 
     return new Promise((resolve) => {
-        function frame() {
+        const frame = () => {
             const now = Date.now();
             const t = Math.min((now - startTime) / duration, 1);
             const ease = 1 - Math.pow(1 - t, 3); // easeOutCubic
@@ -288,10 +454,8 @@ const cinematicFlyIn = async () => {
                 isIntroActive = false;
                 isOrbitPaused = true;
 
-                // Keep camera locked for 2.5 seconds to capture first few moves
                 setTimeout(() => {
                     isOrbitPaused = false;
-                    // Dynamically calculate offset the moment orbit starts
                     orbitTimeOffset = (Date.now() * 0.0001) - (Math.PI / 2);
                 }, 2500);
 
@@ -307,12 +471,9 @@ const animate = () => {
 
     if (!isIntroActive) {
         if (isOrbitPaused) {
-            // Lock to exact end position
             camera.position.set(0, 40, 45);
             camera.lookAt(0, 0, 0);
         } else {
-            // Smooth Orbit using synchronized offset
-            // Ensure offset is initialized if we skipped the intro (failsafe)
             if (orbitTimeOffset === 0) orbitTimeOffset = (Date.now() * 0.0001) - (Math.PI / 2);
 
             const timer = (Date.now() * 0.0001) - orbitTimeOffset;
@@ -333,3 +494,4 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
+

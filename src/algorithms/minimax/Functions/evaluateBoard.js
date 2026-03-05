@@ -1,6 +1,6 @@
 import { scoreCell } from "./scoreCell.js";
 
-export const evaluateBoard=(board)=> {
+export const evaluateBoard = (board) => {
     let aiScore = 0;
     let opponentScore = 0;
     const size = board.length;
@@ -12,9 +12,9 @@ export const evaluateBoard=(board)=> {
             if (board[r][c] !== 0) {
                 const player = board[r][c];
                 const score = scoreCell(board, r, c, player);
-                if (player === 1) 
+                if (player === 2)
                     aiScore += score;
-                else 
+                else
                     opponentScore += score;
             }
         }

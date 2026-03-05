@@ -11,23 +11,35 @@
 
 <body>
   <div id="overlay">
-    <div class="intro-container">
-      <div class="vs-container">
-        <div class="side left">
-          <div class="agent-title">THE STRATEGIST</div>
-          <div class="agent-name">Minimax</div>
-          <div class="agent-disc">Pattern Recognition</div>
-        </div>
-        <div class="vs-emblem">VS</div>
-        <div class="side right">
-          <div class="agent-title">THE ORACLE</div>
-          <div class="agent-name">MCTS</div>
-          <div class="agent-disc">Statistical Search</div>
-        </div>
+    <div class="intro-container" id="menuMain">
+      <h1 class="game-title">GOMOKU</h1>
+      <div class="menu-options">
+        <button class="btn-menu" id="playBtn">PLAY</button>
+        <button class="btn-menu" id="aiVsAiBtn">AI VS AI</button>
       </div>
-      <button class="btn-start" id="startBtn">COMMIT BATTLE</button>
+    </div>
+
+    <div class="intro-container" id="menuChooseAI" style="display: none;">
+      <div class="menu-header">
+        <button class="btn-back" id="backToMainBtn">←</button>
+        <h2 class="menu-subtitle">CHOOSE YOUR OPPONENT</h2>
+      </div>
+      <p class="menu-desc">Who do you want to play against?</p>
+      <div class="menu-options">
+        <button class="btn-menu" id="playMinimaxBtn">MINIMAX</button>
+        <button class="btn-menu" id="playMctsBtn">MCTS</button>
+      </div>
     </div>
   </div>
+
+  <div id="victoryOverlay" style="display: none;">
+    <div class="victory-container">
+      <h2 class="victory-title">VICTORY</h2>
+      <p id="victoryMessage">Player Black Wins!</p>
+      <button class="btn-menu" id="backToMenuBtn">BACK TO MAIN MENU</button>
+    </div>
+  </div>
+
   <div id="info">
     <span class="badge" id="playerBadge"></span>
     <span id="statusMessage">Initializing...</span>

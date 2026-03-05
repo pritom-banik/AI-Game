@@ -70,6 +70,22 @@ export const monteCarloBestMove = (board) => {
         }
     }
 
+    // 3. Can AI create an Open Four (guaranteed win)?
+    for (const m of rootMoves) {
+        if (isOpenFour(board, m.row, m.col, aiPlayer)) {
+            console.log("MCTS: Open Four detected (Win pursuit)!");
+            return m;
+        }
+    }
+
+    // 4. Must AI block opponent's Open Four?
+    for (const m of rootMoves) {
+        if (isOpenFour(board, m.row, m.col, opponent)) {
+            console.log("MCTS: Opponent Open Four blocked!");
+            return m;
+        }
+    }
+
     for (let i = 0; i < ITERATIONS; i++) {
         let node = root;
         let tempBoard = copyBoard(board);
@@ -134,22 +150,42 @@ const smartRollout = (board, currentPlayer) => {
         if (moves.length === 0) return 0; // Draw
 
         // 1. Check if current player can win in one move
-        let bestMove = null;
         for (const m of moves) {
             if (checkImpact(tempBoard, m.row, m.col, player, 5))
                 return player; // Win
         }
 
-        // 2. Check if opponent is about to win (block it)
-        const opponent = player === 1 ? 2 : 1;
+        // 2. Check if current player can create an Open Four (guaranteed win)
         for (const m of moves) {
-            if (checkImpact(tempBoard, m.row, m.col, opponent, 5)) {
+            if (isOpenFour(tempBoard, m.row, m.col, player)) {
                 bestMove = m;
                 break;
             }
         }
 
-        // 3. Otherwise pick a random neighbor move
+        // 3. Check if opponent is about to win (block it)
+        if (!bestMove) {
+            const opponent = player === 1 ? 2 : 1;
+            for (const m of moves) {
+                if (checkImpact(tempBoard, m.row, m.col, opponent, 5)) {
+                    bestMove = m;
+                    break;
+                }
+            }
+        }
+
+        // 4. Check if opponent is about to create an Open Four (must block)
+        if (!bestMove) {
+            const opponent = player === 1 ? 2 : 1;
+            for (const m of moves) {
+                if (isOpenFour(tempBoard, m.row, m.col, opponent)) {
+                    bestMove = m;
+                    break;
+                }
+            }
+        }
+
+        // 5. Otherwise pick a random neighbor move
         if (!bestMove)
             bestMove = moves[Math.floor(Math.random() * moves.length)];
 
@@ -234,6 +270,39 @@ const checkImpact = (board, row, col, player, target) => {
     const win = isWinningMove(board, row, col);
     board[row][col] = 0;
     return win;
+}
+
+const isOpenFour = (board, row, col, player) => {
+    board[row][col] = player;
+    const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+    const size = board.length;
+    let foundOpenFour = false;
+
+    for (const [dr, dc] of directions) {
+        let count = 1;
+        let openEnds = 0;
+
+        // Check positive
+        let r_pos = row + dr, c_pos = col + dc;
+        while (r_pos >= 0 && r_pos < size && c_pos >= 0 && c_pos < size && board[r_pos][c_pos] === player) {
+            count++; r_pos += dr; c_pos += dc;
+        }
+        if (r_pos >= 0 && r_pos < size && c_pos >= 0 && c_pos < size && board[r_pos][c_pos] === 0) openEnds++;
+
+        // Check negative
+        let r_neg = row - dr, c_neg = col - dc;
+        while (r_neg >= 0 && r_neg < size && c_neg >= 0 && c_neg < size && board[r_neg][c_neg] === player) {
+            count++; r_neg -= dr; c_neg -= dc;
+        }
+        if (r_neg >= 0 && r_neg < size && c_neg >= 0 && c_neg < size && board[r_neg][c_neg] === 0) openEnds++;
+
+        if (count === 4 && openEnds === 2) {
+            foundOpenFour = true;
+            break;
+        }
+    }
+    board[row][col] = 0;
+    return foundOpenFour;
 }
 
 const isBoardFull = (board) => {

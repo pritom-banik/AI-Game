@@ -1,13 +1,11 @@
-// Patterns
-
 export const PATTERNS = {
-    five: 100000,
-    openFour: 10000,
-    closedFour: 1000,
-    openThree: 1000,
-    closedThree: 100,
-    openTwo: 100,
-    closedTwo: 10
+    five: 1000000,
+    openFour: 100000,
+    closedFour: 10000,
+    openThree: 10000,
+    closedThree: 1000,
+    openTwo: 1000,
+    closedTwo: 100
 };
 
 export const scoreCell = (board, r, c, player) => {
@@ -16,41 +14,43 @@ export const scoreCell = (board, r, c, player) => {
     const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
 
     for (const [dr, dc] of directions) {
-        let count = 0;
-        let blocked = 0;
+        let count = 1;
+        let openEnds = 0;
 
-        // Counting consecutive pieces in one direction
-
-        for (let i = 0; i < 5; i++) {
+        // Positive direction
+        for (let i = 1; i < 5; i++) {
             const nr = r + i * dr;
             const nc = c + i * dc;
             if (nr >= 0 && nr < size && nc >= 0 && nc < size) {
-                if (board[nr][nc] === player)
-                    count++;
-                else if (board[nr][nc] === 0)
-                    break;
+                if (board[nr][nc] === player) count++;
                 else {
-                    blocked++;
+                    if (board[nr][nc] === 0) openEnds++;
                     break;
                 }
-            }
-            else {
-                blocked++;
-                break;
-            }
+            } else break;
         }
 
-        // Simplistic scoring based on count and blocks
+        // Negative direction
+        for (let i = 1; i < 5; i++) {
+            const nr = r - i * dr;
+            const nc = c - i * dc;
+            if (nr >= 0 && nr < size && nc >= 0 && nc < size) {
+                if (board[nr][nc] === player) count++;
+                else {
+                    if (board[nr][nc] === 0) openEnds++;
+                    break;
+                }
+            } else break;
+        }
 
-        if (count === 5)
-            totalScore += PATTERNS.five;
-        else if (count === 4)
-            totalScore += (blocked === 0 ? PATTERNS.openFour : PATTERNS.closedFour);
-        else if (count === 3)
-            totalScore += (blocked === 0 ? PATTERNS.openThree : PATTERNS.closedThree);
-        else if (count === 2)
-            totalScore += (blocked === 0 ? PATTERNS.openTwo : PATTERNS.closedTwo);
+        if (count >= 5) totalScore += PATTERNS.five;
+        else if (count === 4) {
+            totalScore += (openEnds === 2 ? PATTERNS.openFour : (openEnds === 1 ? PATTERNS.closedFour : 0));
+        } else if (count === 3) {
+            totalScore += (openEnds === 2 ? PATTERNS.openThree : (openEnds === 1 ? PATTERNS.closedThree : 0));
+        } else if (count === 2) {
+            totalScore += (openEnds === 2 ? PATTERNS.openTwo : (openEnds === 1 ? PATTERNS.closedTwo : 0));
+        }
     }
-
     return totalScore;
 }
