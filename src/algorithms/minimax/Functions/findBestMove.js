@@ -8,7 +8,7 @@ export const findBestMove = (board) => {
     };
 
     let bestValue = -Infinity;
-    const depth = 3; // Depth
+    const depth = 4; // Depth
 
     const moves = getPossibleMoves(board);
 

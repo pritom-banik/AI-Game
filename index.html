@@ -1,13 +1,39 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>gomoku-project</title>
-  </head>
-  <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gomoku: Minimax vs MCTS</title>
+  <link rel="stylesheet" href="/src/style.css">
+</head>
+
+<body>
+  <div id="overlay">
+    <div class="intro-container">
+      <div class="vs-container">
+        <div class="side left">
+          <div class="agent-title">THE STRATEGIST</div>
+          <div class="agent-name">Minimax</div>
+          <div class="agent-disc">Pattern Recognition</div>
+        </div>
+        <div class="vs-emblem">VS</div>
+        <div class="side right">
+          <div class="agent-title">THE ORACLE</div>
+          <div class="agent-name">MCTS</div>
+          <div class="agent-disc">Statistical Search</div>
+        </div>
+      </div>
+      <button class="btn-start" id="startBtn">COMMIT BATTLE</button>
+    </div>
+  </div>
+  <div id="info">
+    <span class="badge" id="playerBadge"></span>
+    <span id="statusMessage">Initializing...</span>
+  </div>
+  <div id="app"></div>
+  <script type="module" src="/src/main.js"></script>
+</body>
+
 </html>

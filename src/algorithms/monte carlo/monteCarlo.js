@@ -1,112 +1,245 @@
-const SIMULATIONS = 100;
+// MCTS Algorithm
 
-const oposition = 1;
-const AIc = 2;
+const ITERATIONS = 5000;
+const C = 1.41; // Exploration parameter (sqrt(2))
+
+// Node structure of tree
+
+class MCTSNode {
+    constructor(board, player, move = null, parent = null) {
+        this.player = player;
+        this.move = move;
+        this.parent = parent;
+        this.children = [];
+        this.wins = 0;
+        this.visits = 0;
+
+        // Potential moves to explore from this state
+        // Only calculate untriedMoves if a valid board is provided
+        this.untriedMoves = board ? getNeighborhoodMoves(board) : [];
+    }
+
+    isFullyExpanded() {
+        return this.untriedMoves.length === 0;
+    }
+
+    getBestChild() {
+        let bestChild = null;
+        let bestValue = -Infinity;
+
+        for (const child of this.children) {
+            // UCB1 Formula: (wins / visits) + C * sqrt(log(parent_visits) / child_visits)
+            const exploitation = child.wins / child.visits;
+            const exploration = C * Math.sqrt(Math.log(this.visits) / child.visits);
+            const ucbScore = exploitation + exploration;
+
+            if (ucbScore > bestValue) {
+                bestValue = ucbScore;
+                bestChild = child;
+            }
+        }
+        return bestChild;
+    }
+}
+
+// Main MCTS Function
+
+export const monteCarloBestMove = (board) => {
+    const aiPlayer = 2; // Assuming AI is White/2
+    const opponent = 1;
+
+    // Root node represents current state (last move was opponent's)
+    const root = new MCTSNode(board, opponent);
+
+    // CRITICAL: Immediate Win/Block check at the root
+    const rootMoves = getNeighborhoodMoves(board);
+
+    // 1. Can AI win right now?
+    for (const m of rootMoves) {
+        if (checkImpact(board, m.row, m.col, aiPlayer, 5)) {
+            console.log("MCTS: Immediate win detected!");
+            return m;
+        }
+    }
+
+    // 2. Must AI block opponent's immediate win?
+    for (const m of rootMoves) {
+        if (checkImpact(board, m.row, m.col, opponent, 5)) {
+            console.log("MCTS: Immediate threat blocked!");
+            return m;
+        }
+    }
+
+    for (let i = 0; i < ITERATIONS; i++) {
+        let node = root;
+        let tempBoard = copyBoard(board);
+
+        // 1. Selection: Move down the tree using UCB1
+        while (node.isFullyExpanded() && node.children.length > 0) {
+            node = node.getBestChild();
+            tempBoard[node.move.row][node.move.col] = node.player;
+        }
+
+        // 2. Expansion: Add a new node to the tree
+        if (node.untriedMoves.length > 0) {
+            const moveIndex = Math.floor(Math.random() * node.untriedMoves.length);
+            const move = node.untriedMoves.splice(moveIndex, 1)[0];
+            const nextPlayer = node.player === 1 ? 2 : 1;
+
+            // Apply the move to the board and create the new node
+            tempBoard[move.row][move.col] = nextPlayer;
+            const newNode = new MCTSNode(tempBoard, nextPlayer, move, node);
+            node.children.push(newNode);
+            node = newNode;
+        }
+
+        // 3. Simulation (Rollout): Play randomly but smartly till terminal state
+        const winner = smartRollout(tempBoard, node.player === 1 ? 2 : 1);
+
+        // 4. Backpropagation: Update wins and visits
+        while (node !== null) {
+            node.visits++;
+            if (winner === aiPlayer)
+                node.wins += 1;
+            else if (winner === 0)
+                node.wins += 0.5; // Draw
+            node = node.parent;
+        }
+    }
+
+    // Return the move from the child with the most visits
+    if (root.children.length === 0) {
+        // Fallback catch - should not happen if board has empty spots
+        const moves = getNeighborhoodMoves(board);
+        return moves[0];
+    }
+
+    const bestChild = root.children.reduce((best, child) =>
+        child.visits > best.visits ? child : best
+    );
+
+    return { row: bestChild.move.row, col: bestChild.move.col };
+}
 
 
-function checkWin(tempBoard, player) {
-    for (let i = 0; i < tempBoard.length; i++) {
-        for (let j = 0; j < tempBoard[i].length; j++) {
+// Tactical Rollout: Prioritize immediate wins and blocks
 
-            if (
-                checkDirection(tempBoard, i, j, 1, 0, player) ||
-                checkDirection(tempBoard, i, j, 0, 1, player) ||
-                checkDirection(tempBoard, i, j, 1, 1, player) ||
-                checkDirection(tempBoard, i, j, 1, -1, player)
-            ) return true;
+const smartRollout = (board, currentPlayer) => {
+    const tempBoard = copyBoard(board);
+    const size = tempBoard.length;
+    let player = currentPlayer;
+
+    while (true) {
+        const moves = getNeighborhoodMoves(tempBoard);
+        if (moves.length === 0) return 0; // Draw
+
+        // 1. Check if current player can win in one move
+        let bestMove = null;
+        for (const m of moves) {
+            if (checkImpact(tempBoard, m.row, m.col, player, 5))
+                return player; // Win
+        }
+
+        // 2. Check if opponent is about to win (block it)
+        const opponent = player === 1 ? 2 : 1;
+        for (const m of moves) {
+            if (checkImpact(tempBoard, m.row, m.col, opponent, 5)) {
+                bestMove = m;
+                break;
+            }
+        }
+
+        // 3. Otherwise pick a random neighbor move
+        if (!bestMove)
+            bestMove = moves[Math.floor(Math.random() * moves.length)];
+
+        tempBoard[bestMove.row][bestMove.col] = player;
+
+        // Simple win check (faster than full scan)
+        if (isWinningMove(tempBoard, bestMove.row, bestMove.col))
+            return player;
+
+        if (isBoardFull(tempBoard)) return 0;
+
+        player = opponent;
+    }
+}
+
+// Fast Neighborhood Move Selection
+
+const getNeighborhoodMoves = (board) => {
+    const size = board.length;
+    const moves = [];
+    for (let r = 0; r < size; r++) {
+        for (let c = 0; c < size; c++) {
+            if (board[r][c] === 0) {
+                if (hasNeighbor(board, r, c)) {
+                    moves.push({ row: r, col: c });
+                }
+            }
+        }
+    }
+    // If empty board, try center
+    if (moves.length === 0)
+        return [{ row: Math.floor(size / 2), col: Math.floor(size / 2) }];
+    return moves;
+}
+
+const hasNeighbor = (board, r, c) => {
+    const size = board.length;
+    for (let i = r - 1; i <= r + 1; i++) {
+        for (let j = c - 1; j <= c + 1; j++) {
+            if (i >= 0 && i < size && j >= 0 && j < size && board[i][j] !== 0)
+                return true;
         }
     }
     return false;
 }
 
-function checkDirection(tempBoard, x, y, dx, dy, player) {
-    for (let k = 0; k < 5; k++) {
-        let nx = x + dx * k;
-        let ny = y + dy * k;
+// Fast Win Check (Only around the last move)
 
-        if (nx < 0 || ny < 0 || nx >= tempBoard.length || ny >= tempBoard[0].length)
-            return false;
+function isWinningMove(board, row, col) {
+    const player = board[row][col];
+    const directions = [[0, 1], [1, 0], [1, 1], [1, -1]];
+    const size = board.length;
 
-        if (tempBoard[nx][ny] !== player)
-            return false;
-    }
-    return true;
-}
-
-function randomSimulation(tempBoard, current) {
-
-    let empty = getEmptyCells(tempBoard);
-
-    while (empty.length > 0) {
-
-        let randomIndex = Math.floor(Math.random() * empty.length);
-        let [x, y] = empty.splice(randomIndex, 1)[0];
-
-        tempBoard[x][y] = current;
-
-        if (checkWin(tempBoard, current))
-            return current;
-
-        current = (current === oposition) ? AIc : oposition;
-    }
-
-    return 0;
-}
-
-function getEmptyCells(board) {
-    let cells = [];
-    for (let i = 0; i < board.length; i++) {
-        for (let j = 0; j < board[i].length; j++) {
-            if (board[i][j] === 0)
-                cells.push([i, j]);
+    for (const [dr, dc] of directions) {
+        let count = 1;
+        // Check positive
+        for (let i = 1; i < 5; i++) {
+            const r = row + dr * i, c = col + dc * i;
+            if (r >= 0 && r < size && c >= 0 && c < size && board[r][c] === player)
+                count++;
+            else
+                break;
         }
+        // Check negative
+        for (let i = 1; i < 5; i++) {
+            const r = row - dr * i, c = col - dc * i;
+            if (r >= 0 && r < size && c >= 0 && c < size && board[r][c] === player)
+                count++;
+            else
+                break;
+        }
+        if (count >= 5)
+            return true;
     }
-    return cells;
+    return false;
 }
 
-function copyBoard(board) {
-    return board.map(row => row.slice());
+// Check if placing a stone creates a line of 'target' length
+
+const checkImpact = (board, row, col, player, target) => {
+    board[row][col] = player;
+    const win = isWinningMove(board, row, col);
+    board[row][col] = 0;
+    return win;
 }
 
+const isBoardFull = (board) => {
+    return board.every(row => row.every(cell => cell !== 0));
+}
 
-export function monteCarloBestMove(board) {
-
-    let emptyCells = getEmptyCells(board);
-    let bestMove = emptyCells[0];
-    let bestScore = -1;
-
-    for (let move of emptyCells) {
-        let [x, y] = move;
-        let wins = 0;
-
-        for (let i = 0; i < SIMULATIONS; i++) {
-
-            let tempBoard = copyBoard(board);
-
-            // AIc plays move
-            tempBoard[x][y] = AIc;
-
-            if (checkWin(tempBoard, AIc)) {
-                wins++;
-                continue;
-            }
-
-            let winner = randomSimulation(tempBoard, oposition);
-
-            if (winner === AIc)
-                wins++;
-        }
-
-        if (wins > bestScore) {
-            bestScore = wins;
-            bestMove = move;
-        }
-    }
-
-    let ans = {
-        row: bestMove[0],
-        col: bestMove[1]
-    };
-
-    return ans;
+const copyBoard = (board) => {
+    return board.map(row => [...row]);
 }
