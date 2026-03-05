@@ -200,12 +200,39 @@ const updateStatus = (message, color) => {
     }
 }
 
+let gamePaused = false;
+
+const showPauseMenu = () => {
+    const pm = document.getElementById('pauseMenu');
+    if (pm) pm.classList.remove('hidden');
+};
+const hidePauseMenu = () => {
+    const pm = document.getElementById('pauseMenu');
+    if (pm) pm.classList.add('hidden');
+};
+
 const runGame = async () => {
     const infoDiv = document.getElementById('info');
     if (infoDiv)
         infoDiv.style.display = 'block';
 
     while (!game.gameOver) {
+
+        // This is for pause the game
+        if (gamePaused) {
+            await new Promise(resolve => {
+                const resume = document.getElementById('resumeBtn');
+                const unpause = () => {
+                    gamePaused = false;
+                    hidePauseMenu();
+                    resume.removeEventListener('click', unpause);
+                    resolve();
+                };
+                resume.addEventListener('click', unpause);
+            });
+        }
+
+
         const isMinimax = game.currentPlayer === 1;
         updateStatus(
             isMinimax ? "Minimax thinking..." : "Monte Carlo thinking...",
@@ -252,6 +279,31 @@ if (startBtn) {
             overlay.style.display = 'none';
             runGame();
         }
+    });
+}
+
+// PAUSE/MENUBAR 
+const menuBar = document.getElementById('menuBar');
+if (menuBar) {
+    menuBar.addEventListener('click', () => {
+        gamePaused = true;
+        showPauseMenu();
+    });
+}
+
+const resumeBtn = document.getElementById('resumeBtn');
+if (resumeBtn) {
+    resumeBtn.addEventListener('click', () => {
+        gamePaused = false;
+        hidePauseMenu();
+    });
+}
+
+const mainMenuBtn = document.getElementById('mainMenuBtn');
+if (mainMenuBtn) {
+    mainMenuBtn.addEventListener('click', () => {
+        // simplest: reload page to show the start overlay again
+        window.location.reload();
     });
 }
 
@@ -305,24 +357,26 @@ const cinematicFlyIn = async () => {
 const animate = () => {
     requestAnimationFrame(animate);
 
-    if (!isIntroActive) {
-        if (isOrbitPaused) {
-            // Lock to exact end position
-            camera.position.set(0, 40, 45);
-            camera.lookAt(0, 0, 0);
-        } else {
-            // Smooth Orbit using synchronized offset
-            // Ensure offset is initialized if we skipped the intro (failsafe)
-            if (orbitTimeOffset === 0) orbitTimeOffset = (Date.now() * 0.0001) - (Math.PI / 2);
+    if (!gamePaused) {
+        if (!isIntroActive) {
+            if (isOrbitPaused) {
+                // Lock to exact end position
+                camera.position.set(0, 40, 45);
+                camera.lookAt(0, 0, 0);
+            } else {
+                // Smooth Orbit using synchronized offset
+                // Ensure offset is initialized if we skipped the intro (failsafe)
+                if (orbitTimeOffset === 0) orbitTimeOffset = (Date.now() * 0.0001) - (Math.PI / 2);
 
-            const timer = (Date.now() * 0.0001) - orbitTimeOffset;
-            camera.position.x = Math.cos(timer) * 45;
-            camera.position.z = Math.sin(timer) * 45;
-            camera.lookAt(0, 0, 0);
+                const timer = (Date.now() * 0.0001) - orbitTimeOffset;
+                camera.position.x = Math.cos(timer) * 45;
+                camera.position.z = Math.sin(timer) * 45;
+                camera.lookAt(0, 0, 0);
+            }
         }
-    }
 
-    updateStones();
+        updateStones();
+    }
     renderer.render(scene, camera);
 }
 
