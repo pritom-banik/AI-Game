@@ -1,4 +1,4 @@
-import { monteCarloBestMove } from './monteCarlo.js';
+import { monteCarloBestMove } from './Functions/monteCarloBestMove.js';
 
 onmessage = function (e) {
     const { board } = e.data;
