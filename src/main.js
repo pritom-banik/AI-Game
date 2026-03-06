@@ -219,15 +219,18 @@ const showVictoryDialogue = (winner) => {
         if (winner === 0) {
             victoryTitle.innerText = "DRAW";
             victoryMessage.innerText = "It's a tie!";
-        } else if (gameMode === 'HUMAN_VS_AI') {
+        } 
+        else if (gameMode === 'HUMAN_VS_AI') {
             if (winner === 1) {
                 victoryTitle.innerText = "VICTORY";
                 victoryMessage.innerText = "You won!";
-            } else {
+            } 
+            else {
                 victoryTitle.innerText = "YOU LOST";
                 victoryMessage.innerText = "AI won";
             }
-        } else {
+        } 
+        else {
             victoryTitle.innerText = "BATTLE ENDED";
             victoryMessage.innerText = winner === 1 ? "Minimax won" : "MCTS won";
         }
@@ -238,9 +241,8 @@ const showVictoryDialogue = (winner) => {
 const resetGame = () => {
     const stonesToRemove = [];
     scene.traverse((object) => {
-        if (object instanceof THREE.Mesh && object.geometry.type === 'SphereGeometry') {
+        if (object instanceof THREE.Mesh && object.geometry.type === 'SphereGeometry')
             stonesToRemove.push(object);
-        }
     });
     stonesToRemove.forEach(s => scene.remove(s));
 
@@ -268,7 +270,8 @@ const getHumanMove = () => {
 }
 
 const handleBoardClick = (event) => {
-    if (!isHumanTurn || game.gameOver || gamePaused) return;
+    if (!isHumanTurn || game.gameOver || gamePaused) 
+        return;
 
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -292,7 +295,8 @@ const handleBoardClick = (event) => {
 }
 
 const handleBoardHover = (event) => {
-    if (!isHumanTurn || game.gameOver || gamePaused) return;
+    if (!isHumanTurn || game.gameOver || gamePaused) 
+        return;
 
     mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
     mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -313,11 +317,10 @@ const handleBoardHover = (event) => {
         }
     }
 
-    if (isOverBoard) {
+    if (isOverBoard) 
         renderer.domElement.classList.add('clickable');
-    } else {
+    else 
         renderer.domElement.classList.remove('clickable');
-    }
 }
 
 window.addEventListener('mousedown', (e) => handleBoardClick(e));
@@ -325,11 +328,13 @@ window.addEventListener('mousemove', (e) => handleBoardHover(e));
 
 const showPauseMenu = () => {
     const pm = document.getElementById('pauseMenu');
-    if (pm) pm.classList.remove('hidden');
+    if (pm) 
+        pm.classList.remove('hidden');
 };
 const hidePauseMenu = () => {
     const pm = document.getElementById('pauseMenu');
-    if (pm) pm.classList.add('hidden');
+    if (pm) 
+        pm.classList.add('hidden');
 };
 
 const runGame = async () => {
@@ -358,11 +363,13 @@ const runGame = async () => {
             if (player === 1) {
                 updateStatus("Your Turn (Black)", "#ffffff");
                 move = await getHumanMove();
-            } else {
+            } 
+            else {
                 updateStatus("AI thinking...", "#DAB98E");
                 move = opponentAI === 'MINIMAX' ? await getMinimaxMoveFromWorker(game.board) : await getMCTSMoveFromWorker(game.board);
             }
-        } else {
+        } 
+        else {
             const isMinimax = player === 1;
             updateStatus(
                 isMinimax ? "Minimax thinking..." : "Monte Carlo thinking...",
@@ -379,12 +386,12 @@ const runGame = async () => {
 
                 if (game.gameOver) {
                     let statusText = "";
-                    if (game.winner === 0) statusText = "DRAW";
-                    else if (gameMode === 'HUMAN_VS_AI') {
+                    if (game.winner === 0) 
+                        statusText = "DRAW";
+                    else if (gameMode === 'HUMAN_VS_AI')
                         statusText = game.winner === 1 ? "VICTORY" : "YOU LOST";
-                    } else {
+                    else
                         statusText = game.winner === 1 ? "MINIMAX WON" : "MCTS WON";
-                    }
                     updateStatus(statusText, "red");
                     setTimeout(() => showVictoryDialogue(game.winner), 2000);
                     break;
@@ -511,8 +518,10 @@ const animate = () => {
             if (isOrbitPaused) {
                 camera.position.set(0, 40, 45);
                 camera.lookAt(0, 0, 0);
-            } else {
-                if (orbitTimeOffset === 0) orbitTimeOffset = (Date.now() * 0.0001) - (Math.PI / 2);
+            } 
+            else {
+                if (orbitTimeOffset === 0) 
+                    orbitTimeOffset = (Date.now() * 0.0001) - (Math.PI / 2);
 
                 const timer = (Date.now() * 0.0001) - orbitTimeOffset;
                 camera.position.x = Math.cos(timer) * 45;

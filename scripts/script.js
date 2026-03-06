@@ -76,7 +76,7 @@ scene.add(gridHelper);
 
 const game = new GomokuGame(BOARD_SIZE);
 
-function gridToWorld(row, col) {
+const gridToWorld = (row, col) => {
     const offset = (BOARD_SIZE - 1) / 2;
     return {
         x: (col - offset) * (BOARD_WORLD_SIZE / BOARD_SIZE),
@@ -84,7 +84,7 @@ function gridToWorld(row, col) {
     };
 }
 
-function renderStone(row, col, player) {
+const renderStone = (row, col, player) => {
     const pos = gridToWorld(row, col);
     const geo = new THREE.SphereGeometry(0.8, 32, 32);
     const mat = new THREE.MeshStandardMaterial({
@@ -99,7 +99,7 @@ function renderStone(row, col, player) {
     scene.add(stone);
 }
 
-async function runGame() {
+const runGame = async () => {
     while (!game.gameOver) {
         console.log(`Player ${game.currentPlayer} (Minimax) is thinking...`);
 
@@ -137,7 +137,7 @@ camera.lookAt(0, 0, 0);
 
 /* ANIMATION LOOP */
 
-function animate() {
+const animate = () => {
     requestAnimationFrame(animate);
 
     camera.position.x = 45 * Math.cos(Date.now() * 0.0001);

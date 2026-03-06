@@ -11,7 +11,8 @@ export class GomokuGame {
     }
 
     makeMove(row, col) {
-        if (this.gameOver || this.board[row][col] !== 0) return false;
+        if (this.gameOver || this.board[row][col] !== 0) 
+            return false;
 
         this.board[row][col] = this.currentPlayer;
 
